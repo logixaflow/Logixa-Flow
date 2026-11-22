@@ -19,7 +19,7 @@ from .database import SessionLocal
 from .db_bootstrap import bootstrap_database, database_profile
 from .logging_config import setup_logging
 from .middleware import rate_limit_middleware, request_observability_middleware, security_headers_middleware, stealth_mode_middleware, gateway_secret_middleware
-from .routers import admin, agent, analytics, auth, brain, chat, contacts, controllers, costs, usage, finance, diagnostics, email_templates, estimator, integration, workflow, metrics, moderation, posts, rag, settings, submissions, subscribers, system, uploads, knowledge, telegram
+from .routers import admin, agent, analytics, auth, brain, cargo_intelligence, chat, contacts, controllers, costs, usage, finance, diagnostics, email_templates, estimator, integration, workflow, metrics, moderation, posts, rag, settings, submissions, subscribers, system, uploads, knowledge, telegram
 from .scheduler import scheduler_status, start_scheduler, stop_scheduler
 from .services.telegram import configure_telegram_webhook
 
@@ -413,6 +413,7 @@ app.include_router(diagnostics.router, prefix="/api", tags=["diagnostics"])
 app.include_router(workflow.router)
 app.include_router(telegram.router, prefix="/api", tags=["telegram"])
 app.include_router(brain.router, prefix="/api/admin/brain", tags=["brain"])
+app.include_router(cargo_intelligence.router)
 
 
 @app.get("/")

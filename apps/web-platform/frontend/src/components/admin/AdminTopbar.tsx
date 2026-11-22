@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { ChevronRight, Menu } from "lucide-react";
 import AdminStatusBadge from "./AdminStatusBadge";
 import { ModelSelectorDropdown } from "./ModelSelectorDropdown";
+import { NexusAppSwitcher } from "../NexusAppSwitcher";
 import styles from "@/app/admin/admin-theme.module.css";
 
 const routeLabels: Record<string, string> = {
@@ -63,6 +64,7 @@ export default function AdminTopbar({ onOpenSidebar, sidebarOpen }: { onOpenSide
           </nav>
         </div>
         <div className="ml-auto flex min-w-0 items-center gap-2 sm:gap-3">
+          <NexusAppSwitcher currentAppId="logixa" />
           <div className="hidden sm:block"><ModelSelectorDropdown /></div>
           <AdminStatusBadge label="Admin" tone="cyan" />
         </div>

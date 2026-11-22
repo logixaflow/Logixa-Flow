@@ -5,6 +5,7 @@ import LogixaFlowLogo from "./LogixaFlowLogo";
 import LanguageToggle from "./shadcn/LanguageToggle";
 import MobileDrawer from "./shadcn/MobileDrawer";
 import { useLocale } from "@/lib/LanguageContext";
+import { NexusAppSwitcher } from "./NexusAppSwitcher";
 
 const navItems = [
   { href: "/", label: "home", translate: true },
@@ -32,7 +33,8 @@ export default function Header() {
               {item.translate ? t(item.label) : item.label}
             </Link>
           ))}
-          <div className="flex items-center pl-4 border-l border-slate-700/50">
+          <div className="flex items-center gap-3 pl-4 border-l border-slate-700/50">
+            <NexusAppSwitcher currentAppId="logixa" />
             <LanguageToggle />
           </div>
         </nav>

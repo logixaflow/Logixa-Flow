@@ -165,10 +165,21 @@ export interface AdminChatMessage {
   updated_at?: string;
 }
 
-export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_URL.includes("logixa-flow-api.onrender.com")
-    ? process.env.NEXT_PUBLIC_API_URL
-    : "https://logixa-flow.onrender.com";
+function getSafeApiUrl(): string {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (!envUrl) return "https://logixa-flow.onrender.com";
+  try {
+    const parsed = new URL(envUrl);
+    if (parsed.hostname === "logixa-flow-api.onrender.com") {
+      return "https://logixa-flow.onrender.com";
+    }
+    return envUrl;
+  } catch {
+    return "https://logixa-flow.onrender.com";
+  }
+}
+
+export const API_URL = getSafeApiUrl();
 const API_TIMEOUT_MS = 30000;
 
 type NextFetchInit = RequestInit & { next?: { revalidate?: number | false } };

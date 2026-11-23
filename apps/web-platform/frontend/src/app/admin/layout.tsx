@@ -35,6 +35,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       }
 
       const isLocalPreview =
+        process.env.NODE_ENV !== "test" &&
         typeof window !== "undefined" &&
         (window.location.hostname === "localhost" ||
           window.location.hostname === "127.0.0.1" ||

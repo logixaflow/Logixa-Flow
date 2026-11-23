@@ -249,26 +249,49 @@ export async function refreshAdminSession() {
 
 export async function validateAdminToken(token: string) {
   if (!token) return false;
+
+  // Fast path: decode JWT locally to check Supabase app_metadata.role
+  // This works even when the Render backend is cold/sleeping.
   try {
-    const response = await fetchWithTimeout(`${API_URL}/api/auth/me`, {
-      headers: { Authorization: "Bearer " + token },
-    });
-    if (response.ok) return true;
-    if (response.status !== 401) return false;
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    const role =
+      payload?.app_metadata?.role ||
+      payload?.user_metadata?.role ||
+      payload?.role;
+    if (role === "admin" || role === "service_role") return true;
   } catch {
-    return false;
+    // JWT decode failed — fall through to backend validation
   }
 
-  if (!(await refreshAdminSession())) return false;
-  const { getAdminSessionToken } = await import("@/lib/adminSession");
-  const refreshedToken = await getAdminSessionToken();
-  if (!refreshedToken) return false;
+  // Slow path: validate against backend (may be cold-starting)
   try {
-    const response = await fetchWithTimeout(`${API_URL}/api/auth/me`, {
-      headers: { Authorization: "Bearer " + refreshedToken },
-    });
-    return response.ok;
+    const response = await fetchWithTimeout(
+      `${API_URL}/api/auth/me`,
+      { headers: { Authorization: "Bearer " + token } },
+      10000, // shorter timeout — if backend is awake it responds fast
+    );
+    if (response.ok) return true;
+    if (response.status === 401) {
+      // 401 means backend is up but token is explicitly rejected
+      if (!(await refreshAdminSession())) return false;
+      const { getAdminSessionToken } = await import("@/lib/adminSession");
+      const refreshedToken = await getAdminSessionToken();
+      if (!refreshedToken) return false;
+      try {
+        const r2 = await fetchWithTimeout(
+          `${API_URL}/api/auth/me`,
+          { headers: { Authorization: "Bearer " + refreshedToken } },
+          10000,
+        );
+        return r2.ok;
+      } catch {
+        return false;
+      }
+    }
+    // Backend returned non-401 error (503, 502, timeout) — allow if JWT role matched above
+    return false;
   } catch {
+    // Backend unreachable (Render sleeping) — deny access since JWT has no role claim
     return false;
   }
 }

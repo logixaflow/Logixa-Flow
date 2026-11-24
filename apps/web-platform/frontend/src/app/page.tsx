@@ -214,6 +214,7 @@ export default function Home() {
                     Supply Chain
                   </span>
                   <div
+                    aria-hidden="true"
                     className="absolute inset-0 bg-gradient-to-br from-cyan-500 via-white to-orange-500 bg-clip-text text-transparent font-black blur-2xl opacity-50 scale-105"
                   >
                     Supply Chain

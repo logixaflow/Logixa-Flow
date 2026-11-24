@@ -155,6 +155,13 @@ export default function BrainReviewPage() {
   const [itemsLoading, setItemsLoading] = useState(false);
   const [itemsError, setItemsError] = useState<string | null>(null);
   const [actionPending, setActionPending] = useState(false);
+  // Auth check timeout — show timeout message if backend takes >12s to validate session
+  const [authTimedOut, setAuthTimedOut] = useState(false);
+  useEffect(() => {
+    if (!isCheckingAuth) return;
+    const t = setTimeout(() => setAuthTimedOut(true), 12000);
+    return () => clearTimeout(t);
+  }, [isCheckingAuth]);
 
   useEffect(() => {
     if (!isAuthenticated || !token) {
@@ -163,14 +170,22 @@ export default function BrainReviewPage() {
     setItemsLoading(true);
     setItemsError(null);
     const path = filter === "all" ? "/api/admin/brain" : `/api/admin/brain?status=${filter}`;
-    adminFetch(path, token)
+    // Race fetch against 8-second timeout so skeleton never hangs forever
+    const fetchPromise = adminFetch(path, token)
       .then((response) => response.json())
       .then((records: AiMemory[]) => {
         setItems(records);
         setSelectedId(records[0]?.id || null);
         setItemsLoading(false);
-      })
+      });
+    const timeoutId = setTimeout(() => {
+      setItemsLoading(false);
+      setItemsError("Backend is warming up. Click refresh to retry once it's ready.");
+    }, 8000);
+    fetchPromise
+      .then(() => clearTimeout(timeoutId))
       .catch(() => {
+        clearTimeout(timeoutId);
         setItemsError("Failed to load brain queue. Please try again.");
         setItemsLoading(false);
         toast.error("Brain queue could not be loaded.");
@@ -265,17 +280,37 @@ export default function BrainReviewPage() {
     return (
       <main className="space-y-6 p-4 sm:p-6 lg:p-8">
         <div className="max-w-6xl mx-auto py-8 space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-2 w-3/4">
-              <Skeleton className="h-6 w-1/2" />
-              <Skeleton className="h-8 w-1/3" />
+          {authTimedOut ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
+              <Brain className="h-10 w-10 text-slate-600" />
+              <p className="text-slate-400 text-sm max-w-md">
+                Connecting to backend… The server may be warming up. This usually takes under 30 seconds on the first
+                request.
+              </p>
+              <a
+                href="/admin/brain"
+                className="inline-flex items-center gap-2 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-4 py-2 text-xs font-semibold text-cyan-300 hover:bg-cyan-500/20 transition"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Retry
+              </a>
             </div>
-            <Skeleton className="h-10 w-24" />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Skeleton className="h-64" />
-            <Skeleton className="h-64 col-span-2" />
-          </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <div className="space-y-2 w-3/4">
+                  <Skeleton className="h-6 w-1/2" />
+                  <Skeleton className="h-8 w-1/3" />
+                </div>
+                <Skeleton className="h-10 w-24" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Skeleton className="h-64" />
+                <Skeleton className="h-64 col-span-2" />
+              </div>
+              <p className="text-xs text-slate-500 text-center animate-pulse">Verifying session…</p>
+            </>
+          )}
         </div>
       </main>
     );

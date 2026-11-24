@@ -263,11 +263,23 @@ export default function AdminDashboard() {
     }
 
     try {
-      const statusResponse = await adminFetch("/api/admin/system/status", authToken);
+      const timeoutPromise = new Promise<Response>((_, reject) =>
+        setTimeout(() => reject(new Error("status_timeout")), 5000)
+      );
+      const statusResponse = await Promise.race([
+        adminFetch("/api/admin/system/status", authToken),
+        timeoutPromise,
+      ]);
+      if (!statusResponse.ok) throw new Error("status_not_ok");
       const statusData = (await statusResponse.json()) as SystemStatus;
-      setSystemStatus(statusData);
+      // Ensure required fields exist — backend may omit them on cold start
+      if (statusData && typeof statusData === "object") {
+        setSystemStatus(statusData);
+      } else {
+        throw new Error("status_empty");
+      }
     } catch (error) {
-      console.error("System status error:", error);
+      console.warn("System status unavailable (backend may be warming up):", error);
       setSystemStatus({
         user_active_provider: "OpenAI GPT-4o",
         user_active_model: "gpt-4o-2024-11-20",
